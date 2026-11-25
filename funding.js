@@ -8,7 +8,7 @@ module.exports = function mountFundingRoutes(app, { db, save, auth, admin }) {
   db.fundingMessages ||= [];
 
   const today = () => new Date().toISOString().slice(0, 10);
-  const safeUser = u => ({ id: u.id, name: u.name, country: u.country || '', email: u.email });
+  const safeUser = u => { const profile = db.fundingProfiles.find(p => p.userId === u.id); return { id: u.id, name: u.name, country: u.country || '', publicEmail: profile?.publicEmail || '' }; };
   const mailer = () => {
     const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
@@ -52,7 +52,7 @@ module.exports = function mountFundingRoutes(app, { db, save, auth, admin }) {
     const existing = profileFor(req.user.id);
     const profile = {
       userId: req.user.id, role, sectors: Array.isArray(body.sectors) ? body.sectors.map(x => clean(x, 60)).slice(0, 20) : [],
-      countries: clean(body.countries, 300), fundingMin: clean(body.fundingMin, 40),
+      countries: clean(body.countries, 300), publicEmail: clean(body.publicEmail, 180), fundingMin: clean(body.fundingMin, 40),
       fundingMax: clean(body.fundingMax, 40), currency: clean(body.currency || 'USD', 8),
       fundingType: clean(body.fundingType || 'Investment and/or donation', 100),
       bio: clean(body.bio, 1200), availableToday: Boolean(body.availableToday),
